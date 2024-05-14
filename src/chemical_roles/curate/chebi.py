@@ -6,13 +6,15 @@ import itertools as itt
 import json
 import logging
 from functools import lru_cache
-from typing import Iterable, Optional, Set, TextIO
+from typing import Iterable, Optional, Set, TextIO, Mapping, Tuple, Any
 
 import click
+from tqdm.contrib.logging import logging_redirect_tqdm
 import pandas as pd
 import pyobo
+from pyobo.sources.expasy import ExpasyGetter
 from more_click import verbose_option
-from pyobo.sources.expasy import get_ec2go
+
 from tqdm import tqdm
 
 from ..resources import (
@@ -29,6 +31,7 @@ from ..utils import (
     post_gilda,
     sort_xrefs_df,
     yield_gilda,
+get_ec2go,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +45,9 @@ AGONIST_CHEBI_ID = "48705"
 INVERSE_AGONIST_CHEBI_ID = "90847"
 INHIBITOR_CHEBI_ID = "35222"
 ANTAGONIST_CHEBI_ID = "48706"
+
+
+
 
 
 @lru_cache(maxsize=1)
@@ -87,6 +93,8 @@ def _get_inhibitors_reclassification() -> pd.DataFrame:
 
 def propose_enzyme_modulators() -> pd.DataFrame:
     """Suggest enzyme inhibitors for curation."""
+    x = ExpasyGetter()
+    ec_to_name = x.get_id_name_mapping()
     ec2go = get_ec2go()
     rv = []
 
@@ -144,9 +152,9 @@ def propose_enzyme_modulators() -> pd.DataFrame:
                     name,
                     modulation,
                     "protein family",
-                    "ec-code",
+                    "eccode",
                     ec_code,
-                    pyobo.get_name("eccode", ec_code) or ec_code,
+                    ec_to_name.get(ec_code, ec_code),
                 )
             )
 
@@ -172,7 +180,7 @@ def suggest_pathway_inhibitor_curation() -> None:
     reclassify_df = _get_inhibitors_reclassification()
     reclassify_chebi_ids = set(reclassify_df.chebi_id)
 
-    print(
+    tqdm.write(
         f'Children of {PATHWAY_INHIBITOR_CHEBI_ID} ({pyobo.get_name("chebi", PATHWAY_INHIBITOR_CHEBI_ID)})'
     )
     for chebi_id in _get_ids(pyobo.get_descendants("chebi", PATHWAY_INHIBITOR_CHEBI_ID)):
@@ -190,7 +198,7 @@ def suggest_pathway_inhibitor_curation() -> None:
             logger.warning("could not find chebi:%s", chebi_id)
             raise KeyError(f"chebi:{chebi_id}")
         if name.endswith("inhibitor") and not name.startswith("EC "):
-            print("chebi", chebi_id, name, "inhibitor", "?", "?", "?", "?", sep="\t")
+            tqdm.write("\t".join(("chebi", chebi_id, name, "inhibitor", "?", "?", "?", "?")))
             results = post_gilda(name[: -len(" inhibitor")]).json()
             if results:
                 print(json.dumps(results, indent=2))
@@ -205,7 +213,7 @@ def suggest_inhibitor_curation() -> None:
     )
     chebi_ids = _get_ids(chebi_curies)
     for t in _suggest_xrefs_curation(chebi_ids=chebi_ids, suffix="inhibitor"):
-        print(*t, sep="\t")
+        tqdm.write("\t".join(t))
 
 
 def suggest_agonist_curation() -> None:
@@ -237,9 +245,9 @@ def suggest_all_roles(show_ungrounded: bool = False, file: Optional[TextIO] = No
         "chebi", APPLICATION_ROLE_ID
     )
     chebi_ids = _get_ids(chebi_curies)
-    print(*get_xrefs_df().columns, sep="\t", file=file)
+    tqdm.write("\t".join(get_xrefs_df().columns), file=file)
     for row in _iter_gilda(chebi_ids, show_missing=show_ungrounded):
-        print(*row, sep="\t", file=file)
+        tqdm.write("\t".join(row), file=file)
 
 
 def _single_suggest(chebi_id: str, suffix, file=None, show_missing: bool = False) -> None:
@@ -251,10 +259,10 @@ def _single_suggest(chebi_id: str, suffix, file=None, show_missing: bool = False
         pyobo.get_name("chebi", chebi_id),
     )
     descendant_ids = _get_ids(descendant_curies)
-    for t in _suggest_xrefs_curation(
+    for row in _suggest_xrefs_curation(
         suffix=suffix, chebi_ids=descendant_ids, show_missing=show_missing
     ):
-        print(*t, sep="\t", file=file)
+        tqdm.write("\t".join(row), file=file)
 
 
 def _suggest_xrefs_curation(
@@ -309,15 +317,16 @@ def _iter_gilda(
 @click.option("--output", type=click.File("w"), default=UNCURATED_CHEBI_PATH)
 def curate_chebi(show_ungrounded: bool, output: Optional[TextIO]) -> None:
     """Run the ChEBI curation pipeline."""
-    sort_xrefs_df()
-    # suggest_activator_curation()
-    # suggest_pathway_inhibitor_curation()
-    # suggest_inhibitor_curation()
-    # suggest_agonist_curation()
-    # suggest_antagonist_curation()
-    # suggest_inverse_agonist_curation()
-    # propose_enzyme_modulators()
-    suggest_all_roles(show_ungrounded=show_ungrounded or output is not None, file=output)
+    with logging_redirect_tqdm():
+        sort_xrefs_df()
+        suggest_activator_curation()
+        suggest_pathway_inhibitor_curation()
+        suggest_inhibitor_curation()
+        suggest_agonist_curation()
+        suggest_antagonist_curation()
+        suggest_inverse_agonist_curation()
+        propose_enzyme_modulators()
+        # suggest_all_roles(show_ungrounded=show_ungrounded or output is not None, file=output)
 
 
 if __name__ == "__main__":

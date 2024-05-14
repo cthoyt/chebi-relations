@@ -74,7 +74,7 @@ def rewrite_repo_readme():
     g = sns.barplot(y="Modulation", x="Count", data=modulation_summary_df, ax=lax)
     g.set_xscale("log")
     lax.set_title(
-        f"Modulation ({len(df.index)} in {len(modulation_summary_df.index)} relations)",
+        f"Modulation ({len(df.index):,} in {len(modulation_summary_df.index):,} relations)",
         fontdict={"fontweight": "bold"},
     )
     lax.set_ylabel("")
@@ -83,7 +83,7 @@ def rewrite_repo_readme():
     g = sns.barplot(y="Target Type", x="Count", data=type_summary_df, ax=rax)
     g.set_xscale("log")
     rax.set_title(
-        f"Target Type ({len(df.index)} in {len(type_summary_df.index)} types)",
+        f"Target Type ({len(df.index):,} in {len(type_summary_df.index):,} types)",
         fontdict={"fontweight": "bold"},
     )
     rax.set_ylabel("")
@@ -92,7 +92,7 @@ def rewrite_repo_readme():
     plt.savefig(os.path.join(IMG, "curated_summary.png"), dpi=300)
     plt.savefig(os.path.join(IMG, "curated_summary.svg"))
 
-    text = f"There are {len(df.index)} curated roles as of export on {time.asctime()}\n\n"
+    text = f"There are {len(df.index):,} curated roles as of export on {time.asctime()}\n\n"
     text += tabulate(modulation_summary_df.values, ["Modulation", "Count"], tablefmt="rst")
     text += "\n\n"
     text += tabulate(type_summary_df.values, ["Target Entity Type", "Count"], tablefmt="rst")
@@ -218,7 +218,7 @@ def write_export():
     g = sns.barplot(y="Modulation", x="Count", data=modulation_summary_df, ax=lax)
     g.set_xscale("log")
     lax.set_title(
-        f"Modulation ({len(df.index)} in {len(modulation_summary_df.index)} relations)",
+        f"Modulation ({len(df.index):,} in {len(modulation_summary_df.index):,} relations)",
         fontdict={"fontweight": "bold"},
     )
     lax.set_ylabel("")
@@ -227,7 +227,7 @@ def write_export():
     g = sns.barplot(y="Target Type", x="Count", data=type_summary_df, ax=rax)
     g.set_xscale("log")
     rax.set_title(
-        f"Target Type ({len(df.index)} in {len(type_summary_df.index)} types)",
+        f"Target Type ({len(df.index):,} in {len(type_summary_df.index):,} types)",
         fontdict={"fontweight": "bold"},
     )
     rax.set_ylabel("")
@@ -238,7 +238,7 @@ def write_export():
 
     with open(os.path.join(DOCS, "index.md"), "w") as file:
         print("# Export Summary\n", file=file)
-        print(f"Exported {len(df.index)} relations on {time.asctime()}\n", file=file)
+        print(f"Exported {len(df.index):,} relations on {time.asctime()}\n", file=file)
         print("\n## Summary by Modulation\n", file=file)
         print(modulation_str, file=file)
         print("\n## Summary by Type\n", file=file)

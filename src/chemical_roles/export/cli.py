@@ -6,7 +6,7 @@ import os
 
 import click
 
-from ..constants import DATA
+from ..constants import DATA, directory_option
 
 
 @click.group()
@@ -22,9 +22,6 @@ def export_all(ctx):
     ctx.invoke(obo)
     ctx.invoke(bel)
     ctx.invoke(indra)
-
-
-directory_option = click.option("--directory", default=DATA)
 
 
 @export.command()

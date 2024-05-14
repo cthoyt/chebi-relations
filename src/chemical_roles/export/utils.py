@@ -19,7 +19,14 @@ from pyobo.struct import has_member
 from tqdm import tqdm
 
 from chemical_roles.resources import get_xrefs_df
-from chemical_roles.utils import XREFS_COLUMNS
+from chemical_roles.utils import XREFS_COLUMNS, get_ec2go
+
+__all__ = [
+    "get_relations_df",
+    "DB_TO_TYPE",
+    "get_expasy_closure",
+    "get_uniprot_id_names"
+]
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +43,7 @@ def get_relations_df(use_sub_roles: bool = False, use_inferred: bool = True) -> 
     logger.info("getting enzyme classes")
     expasy_graph, ec_code_to_children = get_expasy_closure()
     logger.info("getting ec2go")
-    ec2go = expasy.get_ec2go()
+    ec2go = get_ec2go()
     logger.info("ec2go has %d elements", len(ec2go))
 
     rows = list(xrefs_df.values)

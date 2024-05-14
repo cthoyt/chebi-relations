@@ -7,8 +7,10 @@ from collections import defaultdict
 from typing import Iterable, Mapping, Set, Tuple
 
 import pandas as pd
+import pystow
 import requests
 
+from pyobo.sources.utils import get_go_mapping
 from .resources import XREFS_PATH, get_xrefs_df
 
 logger = logging.getLogger(__name__)
@@ -107,3 +109,10 @@ def get_single_mappings(df: pd.DataFrame, idx) -> Mapping[str, Set[str]]:
             )[0]
             errors[target_db, target_id, target_name].add(chebi_id)
     return dict(errors)
+
+
+def get_ec2go() -> Mapping[str, Set[Tuple[str, str]]]:
+    """Get the EC mapping to GO activities."""
+    url = "http://current.geneontology.org/ontology/external2go/ec2go"
+    path = pystow.ensure("crog", "data", url=url, name="ec2go.tsv")
+    return get_go_mapping(path, "EC")
